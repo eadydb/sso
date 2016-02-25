@@ -50,6 +50,10 @@
             <groupId>javax.servlet</groupId>
             <artifactId>jstl</artifactId>
         </dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.db2</groupId>
@@ -90,8 +94,18 @@
                 <configuration>
                     <warSourceDirectory>webapp</warSourceDirectory>
                     <failOnMissingWebXml>false</failOnMissingWebXml>
+                    <outputDirectory>/home/db2/WorkSpace/sso</outputDirectory>
                 </configuration>
             </plugin>
         </plugins>
+        <!-- src/main/config下配置文件复制到目标 -->
+        <resources>
+            <resource>
+                <directory>src/main/config</directory>
+                <includes>
+                    <include>**/*</include>
+                </includes>
+            </resource>
+        </resources>
     </build>
 </project>

@@ -4,6 +4,7 @@ import com.db2.sso.server.model.ClientSystem;
 import com.db2.sso.server.model.LoginUser;
 import com.db2.sso.server.service.IAuthenticationHandler;
 import com.db2.sso.server.service.IPreLoginHandler;
+import com.db2.sso.server.service.UserSerializer;
 import org.dom4j.Document;
 import org.dom4j.Element;
 import org.dom4j.io.SAXReader;
@@ -22,8 +23,9 @@ import java.util.Set;
 
 /**
  * 应用配置信息
- *
+ * 
  * @author db2
+ *
  */
 public class Config implements ResourceLoaderAware {
 
@@ -32,6 +34,10 @@ public class Config implements ResourceLoaderAware {
     private ResourceLoader resourceLoader;
 
     private IAuthenticationHandler authenticationHandler; // 鉴权处理器
+
+    // 用户信息转换序列化实现
+    private UserSerializer userSerializer;
+
     private IPreLoginHandler preLoginHandler; // 登录前预处理器
     private String loginViewName = "/login"; // 登录页面视图名称
 
@@ -45,7 +51,7 @@ public class Config implements ResourceLoaderAware {
 
     /**
      * 重新加载配置，以支持热部署
-     *
+     * 
      * @throws Exception
      */
     public void refreshConfig() throws Exception {
@@ -54,16 +60,14 @@ public class Config implements ResourceLoaderAware {
         Properties configProperties = new Properties();
 
         try {
-            Resource resource = resourceLoader
-                    .getResource("classpath:config.properties");
+            Resource resource = resourceLoader.getResource("classpath:config.properties");
             configProperties.load(resource.getInputStream());
         } catch (IOException e) {
             logger.warn("在classpath下未找到配置文件config.properties");
         }
 
         // vt有效期参数
-        String configTokenTimeout = (String) configProperties
-                .get("tokenTimeout");
+        String configTokenTimeout = (String) configProperties.get("tokenTimeout");
         if (configTokenTimeout != null) {
             try {
                 tokenTimeout = Integer.parseInt(configTokenTimeout);
@@ -81,13 +85,11 @@ public class Config implements ResourceLoaderAware {
         }
 
         // 自动登录有效期
-        String configAutoLoginExpDays = configProperties
-                .getProperty("autoLoginExpDays");
+        String configAutoLoginExpDays = configProperties.getProperty("autoLoginExpDays");
         if (configAutoLoginExpDays != null) {
             try {
                 autoLoginExpDays = Integer.parseInt(configAutoLoginExpDays);
-                logger.debug("config.properties设置autoLoginExpDays={}",
-                        autoLoginExpDays);
+                logger.debug("config.properties设置autoLoginExpDays={}", autoLoginExpDays);
             } catch (NumberFormatException e) {
                 logger.warn("autoLoginExpDays参数配置不正确");
             }
@@ -105,8 +107,7 @@ public class Config implements ResourceLoaderAware {
     // 加载客户端系统配置列表
     @SuppressWarnings("unchecked")
     private void loadClientSystems() throws Exception {
-        Resource resource = resourceLoader
-                .getResource("classpath:client_systems.xml");
+        Resource resource = resourceLoader.getResource("classpath:client_systems.xml");
         // dom4j
         SAXReader reader = new SAXReader();
         Document doc = reader.read(resource.getInputStream());
@@ -139,21 +140,20 @@ public class Config implements ResourceLoaderAware {
 
     /**
      * 获取当前鉴权处理器
-     *
+     * 
      * @return
      */
     public IAuthenticationHandler getAuthenticationHandler() {
         return authenticationHandler;
     }
 
-    public void setAuthenticationHandler(
-            IAuthenticationHandler authenticationHandler) {
+    public void setAuthenticationHandler(IAuthenticationHandler authenticationHandler) {
         this.authenticationHandler = authenticationHandler;
     }
 
     /**
      * 获取登录前预处理器
-     *
+     * 
      * @return
      */
     public IPreLoginHandler getPreLoginHandler() {
@@ -166,7 +166,7 @@ public class Config implements ResourceLoaderAware {
 
     /**
      * 获取登录页面视图名称
-     *
+     * 
      * @return
      */
     public String getLoginViewName() {
@@ -179,7 +179,7 @@ public class Config implements ResourceLoaderAware {
 
     /**
      * 获取令牌有效期，单位为分钟
-     *
+     * 
      * @return
      */
     public int getTokenTimeout() {
@@ -192,7 +192,7 @@ public class Config implements ResourceLoaderAware {
 
     /**
      * 客户端系统列表
-     *
+     * 
      * @return
      */
     public List<ClientSystem> getClientSystems() {
@@ -205,22 +205,20 @@ public class Config implements ResourceLoaderAware {
 
     /**
      * 获取指定用户的可用系统列表
-     *
+     * 
      * @param loginUser
      * @return
      * @throws Exception
      */
-    public List<ClientSystem> getClientSystems(LoginUser loginUser)
-            throws Exception {
-        Set<String> authedSysIds = getAuthenticationHandler().authedSystemIds(
-                loginUser);
+    public List<ClientSystem> getClientSystems(LoginUser loginUser) throws Exception {
+        Set<String> authedSysIds = getAuthenticationHandler().authedSystemIds(loginUser);
 
         // null表示允许全部
         if (authedSysIds == null) {
             return clientSystems;
         }
 
-        List<ClientSystem> auhtedSystems = new ArrayList<ClientSystem>();
+        List<ClientSystem> auhtedSystems = new ArrayList<>();
         for (ClientSystem clientSystem : clientSystems) {
             if (authedSysIds.contains(clientSystem.getId())) {
                 auhtedSystems.add(clientSystem);
@@ -241,6 +239,14 @@ public class Config implements ResourceLoaderAware {
 
     public int getAutoLoginExpDays() {
         return autoLoginExpDays;
+    }
+
+    public UserSerializer getUserSerializer() {
+        return userSerializer;
+    }
+
+    public void setUserSerializer(UserSerializer userSerializer) {
+        this.userSerializer = userSerializer;
     }
 
 }

@@ -3,22 +3,22 @@ package com.db2.sso.server.model;
 @SuppressWarnings("serial")
 public class DemoLoginUser extends LoginUser {
 
-    private String loginName;
+	private String loginName;
 
-    public void setLoginName(String loginName) {
-        this.loginName = loginName;
-    }
+	public void setLoginName(String loginName) {
+		this.loginName = loginName;
+	}
 
-    public String getLoginName() {
-        return loginName;
-    }
+	public String getLoginName() {
+		return loginName;
+	}
+	
+	public String getPasswd() {
+		return "admin";
+	}
 
-    public String getPasswd() {
-        return "admin";
-    }
-
-    @Override
-    public String toString() {
-        return loginName;
-    }
+	@Override
+	public String toString() {
+		return loginName;
+	}
 }

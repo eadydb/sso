@@ -1,12 +1,20 @@
 package com.db2.sso.server.model;
 
+import com.db2.sso.common.StringUtil;
+
+import java.io.InputStream;
 import java.io.Serializable;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Date;
+
 
 /**
  * 客户端应用列表
+ * 
+ * @author db2
  *
- * @author 讲课用账号
  */
 @SuppressWarnings("serial")
 public class ClientSystem implements Serializable {
@@ -64,27 +72,72 @@ public class ClientSystem implements Serializable {
 
     /**
      * 与客户端系统通信，通知客户端token过期
-     *
+     * 
      * @param tokenTimeout
      * @return 延期的有效期
+     * @throws MalformedURLException
      */
     public Date noticeTimeout(String vt, int tokenTimeout) {
-        // TODO 与客户端通信处理有效期
-        return null;
+
+        try {
+            String url = innerAddress + "/notice/timeout?vt=" + vt + "&tokenTimeout=" + tokenTimeout;
+            String ret = httpAccess(url);
+
+            if (StringUtil.isEmpty(ret)) {
+                return null;
+            } else {
+                return new Date(Long.parseLong(ret));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     /**
      * 通知客户端用户退出
      */
-    public void noticeLogout(String vt) {
-        //TODO 通知logout
+    public boolean noticeLogout(String vt) {
+        try {
+            String url = innerAddress + "/notice/logout?vt=" + vt;
+            String ret = httpAccess(url);
+
+            return Boolean.parseBoolean(ret);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     /**
      * 通知客户端服务端关闭，客户端收到信息后执行清除缓存操作
      */
-    public void noticeShutdown() {
-        // TODO 通知shutdown
+    public boolean noticeShutdown() {
+        try {
+            String url = innerAddress + "/notice/shutdown";
+            String ret = httpAccess(url);
+
+            return Boolean.parseBoolean(ret);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
+    private String httpAccess(String theUrl) throws Exception {
+        URL url = new URL(theUrl);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setConnectTimeout(500);
+        InputStream is = conn.getInputStream();
+        conn.connect();
+
+        byte[] buff = new byte[is.available()];
+        is.read(buff);
+        String ret = new String(buff, "utf-8");
+
+        conn.disconnect();
+        is.close();
+
+        return ret;
+    }
 }

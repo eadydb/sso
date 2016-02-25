@@ -1,5 +1,8 @@
 package com.db2.sso.server.service;
 
+import java.io.FileInputStream;
+import java.util.Set;
+
 import com.db2.sso.common.MD5;
 import com.db2.sso.common.StringUtil;
 import com.db2.sso.server.model.Credential;
@@ -8,134 +11,131 @@ import com.db2.sso.server.model.LoginUser;
 import com.db2.sso.server.persistence.UserPersistenceObject;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.io.FileInputStream;
-import java.util.Set;
-
 
 public class CaptchaAuthenticationHandler implements IAuthenticationHandler {
 
-    @Autowired
-    private UserPersistenceObject userPersistenceObject;
+	@Autowired
+	private UserPersistenceObject userPersistenceObject;
 
-    @Override
-    public LoginUser authenticate(Credential credential) throws Exception {
+	@Override
+	public LoginUser authenticate(Credential credential) throws Exception {
 
-        // 获取session中保存的验证码
-        String sessionCode = (String) credential.getSettedSessionValue();
-        String captcha = credential.getParameter("captcha");
+		// 获取session中保存的验证码
+		String sessionCode = (String) credential.getSettedSessionValue();
+		String captcha = credential.getParameter("captcha");
 
-        if (!captcha.equalsIgnoreCase(sessionCode)) {
-            credential.setError("验证码错误");
-            return null;
-        }
+		if (!captcha.equalsIgnoreCase(sessionCode)) {
+			credential.setError("验证码错误");
+			return null;
+		}
 
-        // 从持久化中查询登录账号对应的用户对象
-        DemoLoginUser loginUser = userPersistenceObject.getUser(credential
-                .getParameter("name"));
+		// 从持久化中查询登录账号对应的用户对象
+		DemoLoginUser loginUser = userPersistenceObject.getUser(credential
+				.getParameter("name"));
+		
+		if (loginUser != null) {
+			String passwd = credential.getParameter("passwd");
+			String passwd2 = MD5.encode(MD5.encode(loginUser.getPasswd())
+					+ sessionCode);
+			if (passwd2.equals(passwd)) {
+				return loginUser;
+			}
+		}
+		
+		credential.setError("帐号或密码错误");
+		return null;
 
-        if (loginUser != null) {
-            String passwd = credential.getParameter("passwd");
-            String passwd2 = MD5.encode(MD5.encode(loginUser.getPasswd())
-                    + sessionCode);
-            if (passwd2.equals(passwd)) {
-                return loginUser;
-            }
-        }
+		// String passwd = credential.getParameter("passwd");
+		// String passwd2 = MD5.encode(MD5.encode("admin") + sessionCode);
+		// if ("admin".equals(credential.getParameter("name"))
+		// && passwd2.equals(passwd)) {
+		//
+		// DemoLoginUser user = new DemoLoginUser();
+		// user.setLoginName("admin");
+		// return user;
+		// } else {
+		// credential.setError("帐号或密码错误");
+		// return null;
+		// }
+	}
 
-        credential.setError("帐号或密码错误");
-        return null;
+	@Override
+	public Set<String> authedSystemIds(LoginUser loginUser) throws Exception {
+		return null;
+	}
 
-        // String passwd = credential.getParameter("passwd");
-        // String passwd2 = MD5.encode(MD5.encode("admin") + sessionCode);
-        // if ("admin".equals(credential.getParameter("name"))
-        // && passwd2.equals(passwd)) {
-        //
-        // DemoLoginUser user = new DemoLoginUser();
-        // user.setLoginName("admin");
-        // return user;
-        // } else {
-        // credential.setError("帐号或密码错误");
-        // return null;
-        // }
-    }
+	// 自动登录
+	@Override
+	public LoginUser autoLogin(String lt) throws Exception {
 
-    @Override
-    public Set<String> authedSystemIds(LoginUser loginUser) throws Exception {
-        return null;
-    }
+		// String[] tmp = lt.split(",");
+		// if (tmp.length == 2) {
+		// String uname = tmp[0];
+		// String passwd = tmp[1];
+		//
+		// if ("admin".equals(uname) && "admin".equals(passwd)) {
+		// DemoLoginUser user = new DemoLoginUser();
+		// user.setLoginName("admin");
+		// return user;
+		// }
+		// }
+		//
+		// return null;
 
-    // 自动登录
-    @Override
-    public LoginUser autoLogin(String lt) throws Exception {
+		// lt = DES.decrypt(lt, "test==");
+		// String[] tmp = lt.split(",");
+		// if (tmp.length == 2) {
+		// String uname = tmp[0];
+		// String passwd = tmp[1];
+		//
+		// if ("admin".equals(uname) && MD5.encode("admin").equals(passwd)) {
+		// DemoLoginUser user = new DemoLoginUser();
+		// user.setLoginName("admin");
+		// return user;
+		// }
+		// }
 
-        // String[] tmp = lt.split(",");
-        // if (tmp.length == 2) {
-        // String uname = tmp[0];
-        // String passwd = tmp[1];
-        //
-        // if ("admin".equals(uname) && "admin".equals(passwd)) {
-        // DemoLoginUser user = new DemoLoginUser();
-        // user.setLoginName("admin");
-        // return user;
-        // }
-        // }
-        //
-        // return null;
+		// 从持久化存储中按lt查找对应loginUser
+		FileInputStream fis = new FileInputStream("d:/test");
+		byte[] buff = new byte[fis.available()];
+		fis.read(buff);
+		fis.close();
+				
+		String tmp = new String(buff);
+		String[] tmps = tmp.split("=");
+		
+		// 相当于从存储中找个了与lt匹配的数据记录
+		if (lt.equals(tmps[0])) {
+			// 将匹配的数据装配成loginUser对象
+			DemoLoginUser loginUser = userPersistenceObject.getUser(tmps[1]);
+			return loginUser;
+		}
+		
+		// 没有匹配项则表示自动登录标识无效
+		return null;
+	}
 
-        // lt = DES.decrypt(lt, "test==");
-        // String[] tmp = lt.split(",");
-        // if (tmp.length == 2) {
-        // String uname = tmp[0];
-        // String passwd = tmp[1];
-        //
-        // if ("admin".equals(uname) && MD5.encode("admin").equals(passwd)) {
-        // DemoLoginUser user = new DemoLoginUser();
-        // user.setLoginName("admin");
-        // return user;
-        // }
-        // }
+	// 生成自动登录标识
+	@Override
+	public String loginToken(LoginUser loginUser) throws Exception {
 
-        // 从持久化存储中按lt查找对应loginUser
-        FileInputStream fis = new FileInputStream("d:/test");
-        byte[] buff = new byte[fis.available()];
-        fis.read(buff);
-        fis.close();
+		DemoLoginUser demoLoginUser = (DemoLoginUser) loginUser;
 
-        String tmp = new String(buff);
-        String[] tmps = tmp.split("=");
+		// 生成一个唯一标识用作lt
+		String lt = StringUtil.uniqueKey();
 
-        // 相当于从存储中找个了与lt匹配的数据记录
-        if (lt.equals(tmps[0])) {
-            // 将匹配的数据装配成loginUser对象
-            DemoLoginUser loginUser = userPersistenceObject.getUser(tmps[1]);
-            return loginUser;
-        }
+		// 将新lt更新到当前user对应字段
+		userPersistenceObject
+				.updateLoginToken(demoLoginUser.getLoginName(), lt);
 
-        // 没有匹配项则表示自动登录标识无效
-        return null;
-    }
+		return lt;
+	}
 
-    // 生成自动登录标识
-    @Override
-    public String loginToken(LoginUser loginUser) throws Exception {
-
-        DemoLoginUser demoLoginUser = (DemoLoginUser) loginUser;
-
-        // 生成一个唯一标识用作lt
-        String lt = StringUtil.uniqueKey();
-
-        // 将新lt更新到当前user对应字段
-        userPersistenceObject
-                .updateLoginToken(demoLoginUser.getLoginName(), lt);
-
-        return lt;
-    }
-
-    // 更新持久化的lt
-    @Override
-    public void clearLoginToken(LoginUser loginUser)
-            throws Exception {
-        DemoLoginUser demoLoginUser = (DemoLoginUser) loginUser;
-        userPersistenceObject.updateLoginToken(demoLoginUser.getLoginName(), null);
-    }
+	// 更新持久化的lt
+	@Override
+	public void clearLoginToken(LoginUser loginUser)
+			throws Exception {
+		DemoLoginUser demoLoginUser = (DemoLoginUser) loginUser;	
+		userPersistenceObject.updateLoginToken(demoLoginUser.getLoginName(), null);
+	}
 }

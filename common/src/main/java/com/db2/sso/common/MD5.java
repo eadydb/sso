@@ -7,7 +7,7 @@ import java.security.NoSuchAlgorithmException;
 /**
  * MD5工具
  * 
- * @author preach
+ * @author db2
  *
  */
 public class MD5 {

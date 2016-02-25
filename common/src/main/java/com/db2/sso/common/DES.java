@@ -9,7 +9,7 @@ import javax.crypto.KeyGenerator;
 
 /**
  * DES工具
- * @author preach
+ * @author db2
  *
  */
 public class DES {

@@ -1,13 +1,13 @@
 package com.db2.sso.server.controller;
 
-import com.db2.sso.common.CookieUtil;
-import com.db2.sso.common.StringUtil;
-import com.db2.sso.server.config.Config;
-import com.db2.sso.server.model.ClientSystem;
-import com.db2.sso.server.model.Credential;
-import com.db2.sso.server.model.LoginUser;
-import com.db2.sso.server.service.IPreLoginHandler;
-import com.db2.sso.server.token.TokenManager;
+import java.io.IOException;
+import java.util.Map;
+
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
@@ -15,13 +15,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import java.io.IOException;
-import java.util.Map;
-
+import demo.sso.common.CookieUtil;
+import demo.sso.common.StringUtil;
+import demo.sso.server.Config;
+import demo.sso.server.TokenManager;
+import demo.sso.server.model.ClientSystem;
+import demo.sso.server.model.Credential;
+import demo.sso.server.model.LoginUser;
+import demo.sso.server.service.IPreLoginHandler;
 
 @Controller
 public class LoginController {
@@ -31,7 +32,7 @@ public class LoginController {
 
     /**
      * 登录入口
-     *
+     * 
      * @param request
      * @param backUrl
      * @param response
@@ -40,25 +41,25 @@ public class LoginController {
      * @throws Exception
      */
     @RequestMapping(value = "/login", method = RequestMethod.GET)
-    public String login(HttpServletRequest request, String backUrl,
-                        HttpServletResponse response, ModelMap map) throws Exception {
+    public String login(HttpServletRequest request, String backUrl, HttpServletResponse response, ModelMap map,
+            Boolean notLogin) throws Exception {
 
         String vt = CookieUtil.getCookie("VT", request);
 
         if (vt == null) { // VT不存在
             String lt = CookieUtil.getCookie("LT", request);
             if (lt == null) { // VT不存在，LT也不存在
-                return config.getLoginViewName();
+                // return config.getLoginViewName();
+                return authFailed(notLogin, response, backUrl);
             } else { // VT不存在， LT存在
-                LoginUser loginUser = config.getAuthenticationHandler()
-                        .autoLogin(lt);
+                LoginUser loginUser = config.getAuthenticationHandler().autoLogin(lt);
 
                 if (loginUser == null) {
-                    return config.getLoginViewName();
+                    // return config.getLoginViewName();
+                    return authFailed(notLogin, response, backUrl);
                 } else {
                     vt = authSuccess(response, loginUser, true);
-                    return validateSuccess(backUrl, vt, loginUser, response,
-                            map);
+                    return validateSuccess(backUrl, vt, loginUser, response, map);
                 }
             }
         } else { // VT存在
@@ -66,8 +67,28 @@ public class LoginController {
             if (loginUser != null) { // VT有效
                 return validateSuccess(backUrl, vt, loginUser, response, map); // 验证成功后操作
             } else { // VT 失效，转入登录页
-                return config.getLoginViewName();
+                // return config.getLoginViewName();
+                return authFailed(notLogin, response, backUrl);
             }
+        }
+    }
+
+    /**
+     * 授权认证失败时返回的内容设置
+     * 
+     * @param reqType
+     * @param response
+     * @param backUrl
+     * @return
+     * @throws IOException
+     */
+    private String authFailed(Boolean notLogin, HttpServletResponse response, String backUrl) throws IOException {
+
+        if (notLogin != null && notLogin) {
+            response.sendRedirect(StringUtil.appendUrlParameter(backUrl, "__vt_param__", ""));
+            return null;
+        } else {
+            return config.getLoginViewName();
         }
     }
 
@@ -83,13 +104,11 @@ public class LoginController {
     }
 
     // VT验证成功或登录成功后的操作
-    private String validateSuccess(String backUrl, String vt,
-                                   LoginUser loginUser, HttpServletResponse response, ModelMap map)
-            throws Exception {
+    private String validateSuccess(String backUrl, String vt, LoginUser loginUser, HttpServletResponse response,
+            ModelMap map) throws Exception {
 
         if (backUrl != null) {
-            response.sendRedirect(StringUtil.appendUrlParameter(backUrl, "VT",
-                    vt));
+            response.sendRedirect(StringUtil.appendUrlParameter(backUrl, "__vt_param__", vt));
             return null;
         } else {
             map.put("sysList", config.getClientSystems(loginUser));
@@ -102,7 +121,7 @@ public class LoginController {
 
     /**
      * 登录验证
-     *
+     * 
      * @param backUrl
      * @param rememberMe
      * @param request
@@ -113,14 +132,12 @@ public class LoginController {
      * @throws Exception
      */
     @RequestMapping(method = RequestMethod.POST, value = "/login")
-    public String login(String backUrl, Boolean rememberMe,
-                        HttpServletRequest request, HttpSession session,
-                        HttpServletResponse response, ModelMap map) throws Exception {
+    public String login(String backUrl, Boolean rememberMe, HttpServletRequest request, HttpSession session,
+            HttpServletResponse response, ModelMap map) throws Exception {
 
         final Map<String, String[]> params = request.getParameterMap();
 
-        final Object sessionVal = session
-                .getAttribute(IPreLoginHandler.SESSION_ATTR_NAME);
+        final Object sessionVal = session.getAttribute(IPreLoginHandler.SESSION_ATTR_NAME);
 
         Credential credential = new Credential() {
 
@@ -141,8 +158,7 @@ public class LoginController {
             }
         };
 
-        LoginUser loginUser = config.getAuthenticationHandler().authenticate(
-                credential);
+        LoginUser loginUser = config.getAuthenticationHandler().authenticate(credential);
 
         if (loginUser == null) {
             map.put("errorMsg", credential.getError());
@@ -155,7 +171,7 @@ public class LoginController {
 
     /**
      * 用户退出
-     *
+     * 
      * @param backUrl
      * @param request
      * @param response
@@ -163,8 +179,7 @@ public class LoginController {
      * @throws IOException
      */
     @RequestMapping("/logout")
-    public String logout(String backUrl, HttpServletRequest request,
-                         HttpServletResponse response) throws Exception {
+    public String logout(String backUrl, HttpServletRequest request, HttpServletResponse response) throws Exception {
 
         String vt = CookieUtil.getCookie("VT", request);
 
@@ -174,9 +189,7 @@ public class LoginController {
             // 清除服务端自动登录状态
             config.getAuthenticationHandler().clearLoginToken(loginUser);
             // 清除自动登录cookie
-            Cookie ltCookie = new Cookie("LT", null);
-            ltCookie.setMaxAge(0);
-            response.addCookie(ltCookie);
+            CookieUtil.deleteCookie("LT", response, null);
         }
 
         // 移除token
@@ -201,8 +214,7 @@ public class LoginController {
     }
 
     // 授权成功后的操作
-    private String authSuccess(HttpServletResponse response,
-                               LoginUser loginUser, Boolean rememberMe) throws Exception {
+    private String authSuccess(HttpServletResponse response, LoginUser loginUser, Boolean rememberMe) throws Exception {
         // 生成VT
         String vt = StringUtil.uniqueKey();
         // 生成LT？
@@ -223,6 +235,8 @@ public class LoginController {
             cookie.setSecure(true);
         }
 
+        response.setHeader("P3P",
+                "CP=\"CURa ADMa DEVa PSAo PSDo OUR BUS UNI PUR INT DEM STA PRE COM NAV OTC NOI DSP COR\"");
         response.addCookie(cookie);
         return vt;
     }
@@ -236,4 +250,5 @@ public class LoginController {
         }
         response.addCookie(ltCookie);
     }
+
 }

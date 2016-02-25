@@ -11,6 +11,9 @@
     <modules>
         <module>server</module>
         <module>common</module>
+        <module>client</module>
+        <module>app1</module>
+        <module>app2</module>
     </modules>
     <dependencyManagement>
         <dependencies>
