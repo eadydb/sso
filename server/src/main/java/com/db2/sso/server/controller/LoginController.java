@@ -8,6 +8,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import com.db2.sso.common.CookieUtil;
+import com.db2.sso.common.StringUtil;
+import com.db2.sso.server.config.Config;
+import com.db2.sso.server.model.ClientSystem;
+import com.db2.sso.server.model.Credential;
+import com.db2.sso.server.model.LoginUser;
+import com.db2.sso.server.service.IPreLoginHandler;
+import com.db2.sso.server.token.TokenManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
@@ -15,14 +23,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import demo.sso.common.CookieUtil;
-import demo.sso.common.StringUtil;
-import demo.sso.server.Config;
-import demo.sso.server.TokenManager;
-import demo.sso.server.model.ClientSystem;
-import demo.sso.server.model.Credential;
-import demo.sso.server.model.LoginUser;
-import demo.sso.server.service.IPreLoginHandler;
 
 @Controller
 public class LoginController {
